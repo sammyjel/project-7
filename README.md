@@ -102,7 +102,7 @@ Important information: You must additionally open the following ports for your c
 
 ![TCPUDP](./images/TCPUDP.png)
 
-## database server configuration
+## Database server configuration
 
 Open a fresh terminal tab and start your database server.
 
@@ -141,4 +141,122 @@ MySQL should be restarted with sudo `systemctl restart mysql`.
 on your computer, launch one of the Webservers, such as web1.
 
 On the server, install the NFS client.
+
+sudo yum install nfs-utils nfs4-acl-tools -y
+
+Use the command mkdir /var/www to create a directory.
+
+Mount /var/www and use the applications export on the NFS server.
+
+`sudo mount -t nfs -o rw,nosuid <NFS-Server-Private-IP-Address>:/mnt/apps /var/www`
+
+To verify that NFS has been mounted successfully, run df -h.
+
+![df -h](./images/dff%20%3Dh.png)
+
+Open /etc/fstab file `vi /etc/fstab` and add `<NFS-Server-Private-IP-Address>:/mnt/apps /var/www nfs defaults 0 0`
+
+Setup and launch Apache
+
+`sudo yum install httpd -y`
+
+`systemctl start httpd`
+
+`systemctl enable httpd`
+
+`systemctl status httpd` can be used to see whether Apache is active.
+
+`sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm`
+
+`sudo dnf install dnf-utils http://rpms.remirepo.net/enterprise/remi-release-8.rpm`
+
+Run the following instructions to install PHP and its dependencies.
+
+`sudo dnf module reset php`
+
+`sudo dnf module enable php:remi-7.4`
+
+`sudo dnf install php php-opcache php-gd php-curl php-mysqlnd`
+
+`sudo systemctl start php-fpm`
+
+`sudo systemctl enable php-fpm`
+
+`setsebool -P httpd_execmem 1`
+
+Using the commands `ls /var/www` and `ls /mnt/apps` on the NFS server and webserver, respectively, you can verify that the apache files and folders are present on both servers. Create a file on the web server, then see if it also appears on the NFS server. For example, `touch real.txt`
+
+Locate the web server's apache lof folder and mount it to the export for logs NFS server.
+
+Open /etc/fstab file `vi /etc/fstab` and add `<NFS-Server-Private-IP-Address>:/mnt/logs /var/log nfs defaults 0 0`
+
+From the Darey.io Github account, clone the source code to your own Github repository.
+
+You must first install git on your server for this.
+
+`sudo yum install git -y`
+
+then use `sudo git init` to initialize git.
+
+`sudo git clone https://github.com/darey-io/tooling.git`
+
+`ls` to see if the tooling directory was located.
+
+Make sure to deploy the html from the tools directory to /var/www/html after deploying the website's code to the webserver.
+
+`cp -R tooling/html/. /var/www/html`
+
+Using the public address of your web server, see if everything is functioning properly in your browser. You receive a page that resembles the one seen in the picture below.
+
+![redhat](./images/red%20hat%20.png)
+
+Open the selinux file, and make sure SELinux is turned off.
+
+`sudo vi /etc/sysconfig/selinux` then set selinu=disabled
+
+![selinux](./images/selinux.png)
+
+To connect to the database, `cd` into `/var/www/html` and change it.
+
+Look for the line that like the one in the following image in `vi /functions.php`, add the tooling-db.sql script, and then.
+
+![functionsphp](./images/functions.png)
+
+and changed admin to "webaccess" and the second admin to "with your db webaccess password." You need also replace msql.tooling.svc.cluster.local with your database server's private IP address. look at the picture below
+
+![cluster](./images/cluster.local.png)
+
+
+install MySQL on the web server.
+
+Make sure your dbserver security group has the mysql/arora port open so that it can only connect to the private subnet cidr of your web server.
+
+Make careful to verify the binding address (0.0.0.0) on your database server so that anyone can connect.
+
+`vi /etc/mysql/mysql.conf.d/mysqld.cnf`
+
+and make sure you restart mysql `sudo systemctl restart mysql`
+
+So, run the command below on the webserver
+
+`mysql -h <database-private-ip> -u <db-username> -p <name of database> < tooling-db.sql`
+
+If there is no error returned, everything is operating as intended.
+
+launch your browser and type this
+
+http://<Web-Server-Public-IP-Address-or-Public-DNS-Name>/index.php
+
+Greetings and congratulations to you if you view the image below.
+
+![loginpage](./images/login%20page.png)
+
+Enter "admin" as the user name and "admin" as the password to see
+
+![openingpge](./images/opening%20page.png)
+![createuser](./images/create%20user.png)
+
+CONGRATULATION
+
+
 
