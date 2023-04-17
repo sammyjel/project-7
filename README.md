@@ -57,4 +57,88 @@ Open your NFS-svr terminal and run the following instructions sequentially:
 `sudo systemctl enable nfs-server.service`
 
 `sudo systemctl status nfs-server.service`
+Export mounts to connect to webservers' subnet CIDR and install all three webservers in the same subnet for simplicity, but separate each tier into its own subnet in production for higher security.
+
+To verify your subnet `cidr`, visit your EC2 details in the AWS web dashboard, navigate to the 'Networking' tab, and click the Subnet link:
+![mount](./images/mount.png) 
+
+`sudo chown -R nobody: /mnt/apps`
+
+`sudo chown -R nobody: /mnt/logs`
+
+`sudo chown -R nobody: /mnt/opt`
+
+Run the following commands to grant the permissions after creating the owner:
+
+`sudo chmod -R 777 /mnt/apps`
+
+`sudo chmod -R 777 /mnt/logs`
+
+`sudo chmod -R 777 /mnt/opt`
+
+Run the following command to restart your nfs server:
+
+`sudo systemctl restart nfs-server.service`
+
+Open the `/etc/exports` file with any text editor, such as `sudo vi /etc/exports`, and paste the following commands to configure access to NFS for clients on the same subnet:
+
+`/mnt/apps <Subnet-CIDR>(rw,sync,no_all_squash,no_root_squash)`
+
+`/mnt/logs <Subnet-CIDR>(rw,sync,no_all_squash,no_root_squash)`
+
+`/mnt/opt <Subnet-CIDR>(rw,sync,no_all_squash,no_root_squash)`
+
+You must use the subnet-cidr from your webserver instance, so keep that in mind.
+
+Run the `sudo exportfs -arv` command after saving and exporting.
+
+Examine the NFS port.
+
+`sudo rpcinfo -p | grep nfs` If everything is in order, the output should look like this:
+ 
+![rpc](./images/rpc.png)
+
+Important information: You must additionally open the following ports for your client to be able to connect to the NFS server: TCP 111, UDP 111, and UDP 2049
+
+![TCPUDP](./images/TCPUDP.png)
+
+## database server configuration
+
+Open a fresh terminal tab and start your database server.
+
+You should be aware that this server runs the Linux operating system Ubuntu.
+
+Install MYSQL on the server by entering the commands `sudo apt install mysql-server -y` and `sudo mysql` to access the console.
+
+start mysql:
+
+`sudo systemctl start mysql`
+
+`sudo systemctl status mysql` to check if mysql is up and running
+
+Create a tooling-themed database account.
+
+CREATE DATABASE tooling;
+
+Create the user webaccess and give it any password you like.
+
+CREATE USER 'webaccess'@'<subnet cidr>' IDENTIFIED BY '<password of your choice>';
+
+Permit webaccess user access.
+
+GRANT ALL ON tooling.* TO 'webaccess'@'<subnet cidr';
+
+FLUSH PRIVILEGES;
+
+SHOW DATABASES;
+
+Next, quit the MySQL console with `exit`
+
+MySQL should be restarted with sudo `systemctl restart mysql`.
+
+## Getting webservers ready
+
+on your computer, launch one of the Webservers, such as web1.
+
+On the server, install the NFS client.
 
